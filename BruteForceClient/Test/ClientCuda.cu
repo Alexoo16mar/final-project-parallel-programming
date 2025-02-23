@@ -24,7 +24,7 @@ __global__ void bruteForceKernel(const char* d_target, int passLength,
     unsigned long long temp = idx;
 
     // Generar desde el dígito más significativo
-    for (int i = passLength - 1; i >= 0; --i) {  // <-- Cambio clave
+    for (int i = passLength - 1; i >= 0; --i) {
         currentGuess[i] = d_charset[temp % CHARSET_SIZE];
         temp /= CHARSET_SIZE;
     }
@@ -44,7 +44,7 @@ __global__ void bruteForceKernel(const char* d_target, int passLength,
 }
 
 int main() {
-    // 1?? Configurar red
+    // 1 Configurar red
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
 
@@ -56,7 +56,7 @@ int main() {
 
     connect(sock, (sockaddr*)&servAddr, sizeof(servAddr));
 
-    // 2?? Recibir contraseña
+    // 2 Recibir contraseña
     int passwordLength;
     recv(sock, (char*)&passwordLength, sizeof(passwordLength), 0);
     passwordLength = ntohl(passwordLength);
@@ -65,14 +65,14 @@ int main() {
     recv(sock, targetPassword, passwordLength, 0);
     std::cout << "[Cliente] Contraseña recibida a buscar: " << /*targetPassword <<*/ std::endl;
 
-    // 3?? Recibir rango
+    // 3 Recibir rango
     char rangeStr[100];
     recv(sock, rangeStr, sizeof(rangeStr), 0);
     unsigned long long start = _strtoui64(strtok(rangeStr, ","), NULL, 10);
     unsigned long long end = _strtoui64(strtok(NULL, ","), NULL, 10);
     std::cout << "[Cliente] Rango recibido: " << start << " - " << end << std::endl;
 
-    // 4?? Configurar CUDA
+    // 4 Configurar CUDA
     char* d_target;
     int* d_found;
     unsigned long long* d_index;
@@ -85,14 +85,14 @@ int main() {
     cudaMemset(d_found, 0, sizeof(int));
     cudaMemset(d_index, 0, sizeof(unsigned long long));
 
-    // 5?? Ejecutar kernel
+    // 5 Ejecutar kernel
     const int blockSize = 1024;  // Optimizado para GPUs modernas
     const int numBlocks = (end - start + blockSize - 1) / blockSize;
 
     bruteForceKernel << <numBlocks, blockSize >> > (d_target, passwordLength, start, end, d_found, d_index);
     cudaDeviceSynchronize();
 
-    // 6?? Procesar resultados
+    // 6 Procesar resultados
     int found;
     unsigned long long foundIndex;
     cudaMemcpy(&found, d_found, sizeof(int), cudaMemcpyDeviceToHost);
@@ -116,7 +116,7 @@ int main() {
         std::cout << "[Cliente] Contraseña no encontrada" << std::endl;
     }
 
-    // 7?? Limpiar
+    // 7 Limpiar
     cudaFree(d_target);
     cudaFree(d_found);
     cudaFree(d_index);
