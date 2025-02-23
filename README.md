@@ -1,6 +1,6 @@
-# BruteForce CUDA 
+# BruteForce CUDA + RadminVPN
 
-Este proyecto implementa un ataque de fuerza bruta distribuido para descifrar contraseñas mediante CUDA, aprovechando la potencia de la GPU y una red privada virtual para la comunicación entre clientes y el servidor.
+Este proyecto implementa un ataque de fuerza bruta distribuido para descifrar contraseñas mediante CUDA, aprovechando la potencia de la GPU y una red privada virtual (RadminVPN) para la comunicación entre clientes y el servidor.
 
 ##  Descripción
 
@@ -13,7 +13,7 @@ La comunicación entre clientes y servidor se realiza mediante **sockets** en Wi
 
 ---
 
-## 🛠 Requisitos
+##  Requisitos
 
 ###  Software:
 - [RadminVPN](https://www.radmin-vpn.com/) (para conectar clientes y servidor en una red virtual)
