@@ -1,0 +1,6 @@
+﻿  ServerMain.cpp
+C:\Users\Alexoo\source\repos\BruteForceServer\BruteForceServer\ServerMain.cpp(59,53): warning C4244: 'inicializando': conversión de 'double' a 'unsigned __int64'; posible pérdida de datos
+C:\Users\Alexoo\source\repos\BruteForceServer\BruteForceServer\ServerMain.cpp(59,48): warning C4244: 'inicializando': conversión de 'double' a 'const unsigned __int64'; posible pérdida de datos
+C:\Users\Alexoo\source\repos\BruteForceServer\BruteForceServer\ServerMain.cpp(65,49): warning C4267: 'argumento': conversión de 'size_t' a 'int'; posible pérdida de datos
+C:\Users\Alexoo\source\repos\BruteForceServer\BruteForceServer\ServerMain.cpp(66,49): warning C4267: 'argumento': conversión de 'size_t' a 'int'; posible pérdida de datos
+  BruteForceServer.vcxproj -> C:\Users\Alexoo\source\repos\BruteForceServer\x64\Debug\BruteForceServer.exe
