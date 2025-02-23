@@ -6,7 +6,7 @@
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "cudart.lib")
 
-#define SERVER_IP "26.169.61.230"
+#define SERVER_IP "XX.XXX.XX.XXX" // Change it to the server IP
 #define PORT 65432
 #define CHARSET_SIZE 62
 #define MAX_PASSWORD_LENGTH 10
@@ -23,7 +23,7 @@ __global__ void bruteForceKernel(const char* d_target, int passLength,
     char currentGuess[MAX_PASSWORD_LENGTH + 1] = { 0 };
     unsigned long long temp = idx;
 
-    // Generar desde el dígito más significativo
+    // Generar desde el dÃ­gito mÃ¡s significativo
     for (int i = passLength - 1; i >= 0; --i) {  // <-- Cambio clave
         currentGuess[i] = d_charset[temp % CHARSET_SIZE];
         temp /= CHARSET_SIZE;
@@ -56,14 +56,14 @@ int main() {
 
     connect(sock, (sockaddr*)&servAddr, sizeof(servAddr));
 
-    // 2?? Recibir contraseña
+    // 2?? Recibir contraseÃ±a
     int passwordLength;
     recv(sock, (char*)&passwordLength, sizeof(passwordLength), 0);
     passwordLength = ntohl(passwordLength);
 
     char targetPassword[MAX_PASSWORD_LENGTH + 1] = { 0 };
     recv(sock, targetPassword, passwordLength, 0);
-    std::cout << "[Cliente] Contraseña recibida a buscar: " << /*targetPassword <<*/ std::endl;
+    std::cout << "[Cliente] ContraseÃ±a recibida a buscar: " << /*targetPassword <<*/ std::endl;
 
     // 3?? Recibir rango
     char rangeStr[100];
@@ -100,7 +100,7 @@ int main() {
     const char h_charset[CHARSET_SIZE + 1] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
     if (found) {
-        std::cout << "[Cliente] Contraseña encontrada en índice: " << foundIndex << std::endl;
+        std::cout << "[Cliente] ContraseÃ±a encontrada en Ã­ndice: " << foundIndex << std::endl;
         char result[MAX_PASSWORD_LENGTH + 1] = { 0 };
         unsigned long long temp = foundIndex;
         for (int i = passwordLength - 1; i >= 0; --i) {  // ?? Cambio clave
@@ -108,12 +108,12 @@ int main() {
             result[i] = h_charset[remainder];
             temp /= CHARSET_SIZE;
         }
-		std::cout << "[Cliente] Contraseña encontrada: " << result << std::endl;
+		std::cout << "[Cliente] ContraseÃ±a encontrada: " << result << std::endl;
         result[passwordLength] = '\0';
         send(sock, result, passwordLength + 1, 0);
 	}
     else {
-        std::cout << "[Cliente] Contraseña no encontrada" << std::endl;
+        std::cout << "[Cliente] ContraseÃ±a no encontrada" << std::endl;
     }
 
     // 7?? Limpiar
