@@ -103,7 +103,7 @@ int main() {
         std::cout << "[Cliente] Contraseña encontrada en índice: " << foundIndex << std::endl;
         char result[MAX_PASSWORD_LENGTH + 1] = { 0 };
         unsigned long long temp = foundIndex;
-        for (int i = passwordLength - 1; i >= 0; --i) {  // ?? Cambio clave
+        for (int i = passwordLength - 1; i >= 0; --i) {
             int remainder = temp % CHARSET_SIZE;
             result[i] = h_charset[remainder];
             temp /= CHARSET_SIZE;
