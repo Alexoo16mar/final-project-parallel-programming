@@ -9,14 +9,14 @@
 #define CHARSET_SIZE 62
 #define MAX_PASSWORD_LENGTH 10
 
-// 1?? Contraseña definida solo en el servidor
-const char* TARGET_PASSWORD = "a1B2";  // Cambia aquí la contraseña
-const int PASSWORD_LENGTH = 4;         // Longitud real de la contraseña
+// 1 ContraseÃ±a definida solo en el servidor
+const char* TARGET_PASSWORD = "a1B2";  // Cambia aquÃ­ la contraseÃ±a
+const int PASSWORD_LENGTH = 4;         // Longitud real de la contraseÃ±a
 
 int main() {
-    // 2?? Verificar longitud máxima
+    // 2 Verificar longitud mÃ¡xima
     if (PASSWORD_LENGTH > MAX_PASSWORD_LENGTH) {
-        std::cerr << "Error: La contraseña excede la longitud maxima" << std::endl;
+        std::cerr << "Error: La contraseÃ±a excede la longitud maxima" << std::endl;
         return 1;
     }
 
@@ -40,13 +40,13 @@ int main() {
 
     std::cout << "[Servidor] Esperando clientes..." << std::endl;
 
-    // 3?? Aceptar clientes y enviar contraseña
+    // 3 Aceptar clientes y enviar contraseÃ±a
     SOCKET clients[2];
     int clientCount = 0;
     while (clientCount < 2) {
         clients[clientCount] = accept(serverSocket, NULL, NULL);
 
-        // Enviar longitud y contraseña
+        // Enviar longitud y contraseÃ±a
         int netLength = htonl(PASSWORD_LENGTH);
         send(clients[clientCount], (char*)&netLength, sizeof(netLength), 0);
         send(clients[clientCount], TARGET_PASSWORD, PASSWORD_LENGTH, 0);
@@ -55,7 +55,7 @@ int main() {
         clientCount++;
     }
 
-    // 4?? Calcular y distribuir rangos
+    // 4 Calcular y distribuir rangos
     const unsigned long long totalCombinations = pow(CHARSET_SIZE, PASSWORD_LENGTH);
     const unsigned long long chunkSize = totalCombinations / 2;
 
@@ -67,20 +67,20 @@ int main() {
 
     std::cout << "[Servidor] Rangos distribuidos:\n" << range1 << "\n" << range2 << std::endl;
 
-    // 5?? Esperar resultados
+    // 5 Esperar resultados
     while (true) {
         for (int i = 0; i < 2; ++i) {
             char buffer[MAX_PASSWORD_LENGTH + 1] = { 0 };
             /*if (recv(clients[i], buffer, MAX_PASSWORD_LENGTH, 0) > 0) {
-                std::cout << "\n[Servidor] Contraseña encontrada: " << buffer << std::endl;
+                std::cout << "\n[Servidor] ContraseÃ±a encontrada: " << buffer << std::endl;
                 closesocket(serverSocket);
                 WSACleanup();
                 return 0;
             }*/
             int bytesReceived = recv(clients[i], buffer, MAX_PASSWORD_LENGTH, 0);
             if (bytesReceived > 0) {
-                buffer[bytesReceived] = '\0';  // Agregar terminación segura
-                std::cout << "\n[Servidor] Contraseña encontrada: " << buffer << std::endl;
+                buffer[bytesReceived] = '\0';  // Agregar terminaciÃ³n segura
+                std::cout << "\n[Servidor] ContraseÃ±a encontrada: " << buffer << std::endl;
             }
         }
     }
