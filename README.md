@@ -27,7 +27,7 @@ La comunicación entre clientes y servidor se realiza mediante **sockets** en Wi
 
 ## 🚀Instalación y Uso
 
-### 1Configurar RadminVPN
+### Configurar RadminVPN
 1. Instala **[RadminVPN](https://www.radmin-vpn.com/)** en todas las máquinas (servidor y clientes).
 2. Crea una **Red Privada** en RadminVPN desde el servidor y únete a ella desde los clientes.
 3. Copia la dirección IP de RadminVPN del servidor y configúrala en el código del cliente:
