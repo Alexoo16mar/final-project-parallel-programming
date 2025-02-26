@@ -1,5 +1,6 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <windows.h>   // Para Sleep()
 #include <iostream>
 #include <cuda_runtime.h>
 #include <cstring>
@@ -14,7 +15,8 @@
 #define MAX_PASSWORD_LENGTH 10
 
 // Definición en constante del charset para la generación de contraseñas
-__constant__ char d_charset[CHARSET_SIZE + 1] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+__constant__ char d_charset[CHARSET_SIZE + 1] =
+"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
 // Kernel CUDA para fuerza bruta en un rango dado
 __global__ void bruteForceKernel(const char* d_target, int passLength,
@@ -26,7 +28,6 @@ __global__ void bruteForceKernel(const char* d_target, int passLength,
 
     char currentGuess[MAX_PASSWORD_LENGTH + 1] = { 0 };
     unsigned long long temp = idx;
-
     // Convertir el índice en una contraseña (rellenando desde el final)
     for (int i = passLength - 1; i >= 0; --i) {
         currentGuess[i] = d_charset[temp % CHARSET_SIZE];
@@ -42,66 +43,57 @@ __global__ void bruteForceKernel(const char* d_target, int passLength,
             break;
         }
     }
-
     if (match) {
         atomicExch(d_found, 1);
         atomicExch(d_index, idx);
     }
 }
 
-int main() {
-    WSADATA wsaData;
-    WSAStartup(MAKEWORD(2, 2), &wsaData);
-
-    SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock == INVALID_SOCKET) {
-        std::cerr << "[Cliente] Error al crear el socket." << std::endl;
-        WSACleanup();
-        return 1;
-    }
-
+// Función que intenta conectarse al servidor (con reintentos)
+SOCKET connectToServer(const char* server_ip, int port) {
     sockaddr_in servAddr{};
     servAddr.sin_family = AF_INET;
-    servAddr.sin_port = htons(PORT);
-    inet_pton(AF_INET, SERVER_IP, &servAddr.sin_addr);
+    servAddr.sin_port = htons(port);
+    inet_pton(AF_INET, server_ip, &servAddr.sin_addr);
 
-    if (connect(sock, (sockaddr*)&servAddr, sizeof(servAddr)) == SOCKET_ERROR) {
-        std::cerr << "[Cliente] Error al conectar con el servidor." << std::endl;
-        closesocket(sock);
-        WSACleanup();
-        return 1;
+    SOCKET sock = INVALID_SOCKET;
+    while (true) {
+        sock = socket(AF_INET, SOCK_STREAM, 0);
+        if (sock == INVALID_SOCKET) {
+            std::cerr << "[Cliente] Error al crear el socket." << std::endl;
+            WSACleanup();
+            exit(1);
+        }
+        if (connect(sock, (sockaddr*)&servAddr, sizeof(servAddr)) == SOCKET_ERROR) {
+            std::cerr << "[Cliente] Error al conectar con el servidor. Reintentando en 1 segundo..." << std::endl;
+            closesocket(sock);
+            Sleep(1000); // Espera 1 segundo antes de reintentar
+            continue;
+        }
+        break; // Conexión exitosa
     }
+    return sock;
+}
 
-    // Recibir la longitud de la contraseña
-    int passwordLength;
-    recv(sock, (char*)&passwordLength, sizeof(passwordLength), 0);
+// Función que recibe la configuración (longitud y contraseña objetivo) del servidor.
+bool receiveConfiguration(SOCKET sock, int& passwordLength, char targetPassword[MAX_PASSWORD_LENGTH + 1]) {
+    int ret = recv(sock, (char*)&passwordLength, sizeof(passwordLength), 0);
+    if (ret <= 0) return false;
     passwordLength = ntohl(passwordLength);
     if (passwordLength > MAX_PASSWORD_LENGTH) {
         std::cerr << "[Cliente] Error: Longitud de contraseña inválida." << std::endl;
-        closesocket(sock);
-        WSACleanup();
-        return 1;
+        return false;
     }
-
-    // Recibir la contraseña objetivo
-    char targetPassword[MAX_PASSWORD_LENGTH + 1] = { 0 };
-    recv(sock, targetPassword, passwordLength, 0);
+    ret = recv(sock, targetPassword, passwordLength, 0);
+    if (ret <= 0) return false;
     targetPassword[passwordLength] = '\0';
-    std::cout << "[Cliente] Contraseña recibida: " << targetPassword
-        << " (longitud: " << passwordLength << ")" << std::endl;
+    return true;
+}
 
-    // Reservar memoria en el dispositivo para la ejecución en CUDA
-    char* d_target;
-    int* d_found;
-    unsigned long long* d_index;
-    cudaMalloc(&d_target, MAX_PASSWORD_LENGTH + 1);
-    cudaMalloc(&d_found, sizeof(int));
-    cudaMalloc(&d_index, sizeof(unsigned long long));
-    cudaMemcpy(d_target, targetPassword, passwordLength + 1, cudaMemcpyHostToDevice);
+// Función que procesa los mensajes recibidos del servidor
+void processServerMessages(SOCKET sock, int passwordLength,
+    char* d_target, int* d_found, unsigned long long* d_index, int blockSize) {
 
-    const int blockSize = 1024;
-
-    // Bucle principal: el cliente espera recibir bloques (chunks) desde el servidor
     while (true) {
         char msgBuffer[256] = { 0 };
         int bytes = recv(sock, msgBuffer, sizeof(msgBuffer) - 1, 0);
@@ -132,7 +124,8 @@ int main() {
             cudaMemset(d_index, 0, sizeof(unsigned long long));
             unsigned long long rangeSize = endChunk - startChunk;
             int numBlocks = (rangeSize + blockSize - 1) / blockSize;
-            bruteForceKernel << <numBlocks, blockSize >> > (d_target, passwordLength, startChunk, endChunk, d_found, d_index);
+            bruteForceKernel << <numBlocks, blockSize >> > (d_target, passwordLength,
+                startChunk, endChunk, d_found, d_index);
             cudaDeviceSynchronize();
 
             cudaMemcpy(&found, d_found, sizeof(int), cudaMemcpyDeviceToHost);
@@ -142,14 +135,15 @@ int main() {
                 char recoveredPassword[MAX_PASSWORD_LENGTH + 1] = { 0 };
                 unsigned long long tempIndex = foundIndex;
                 for (int i = passwordLength - 1; i >= 0; --i) {
-                    recoveredPassword[i] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"[tempIndex % CHARSET_SIZE];
+                    recoveredPassword[i] =
+                        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"[tempIndex % CHARSET_SIZE];
                     tempIndex /= CHARSET_SIZE;
                 }
                 recoveredPassword[passwordLength] = '\0';
                 std::cout << "[Cliente] Contraseña encontrada: " << recoveredPassword << std::endl;
                 std::string foundMsg = "FOUND," + std::string(recoveredPassword);
                 send(sock, foundMsg.c_str(), foundMsg.size(), 0);
-                break; // Se encontró la contraseña, salir del bucle
+                break; // Salir del bucle si se encontró la contraseña
             }
             else {
                 std::cout << "[Cliente] Contraseña no encontrada en este rango." << std::endl;
@@ -162,6 +156,39 @@ int main() {
             break;
         }
     }
+}
+
+int main() {
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+        std::cerr << "[Cliente] Error al inicializar Winsock." << std::endl;
+        return 1;
+    }
+
+    // Intentar conectarse al servidor (con reintentos)
+    SOCKET sock = connectToServer(SERVER_IP, PORT);
+    std::cout << "[Cliente] Conectado al servidor." << std::endl; // Mensaje de conexión exitosa
+
+    int passwordLength = 0;
+    char targetPassword[MAX_PASSWORD_LENGTH + 1] = { 0 };
+    if (!receiveConfiguration(sock, passwordLength, targetPassword)) {
+        std::cerr << "[Cliente] Error al recibir la configuración." << std::endl;
+        closesocket(sock);
+        WSACleanup();
+        return 1;
+    }
+
+    // Reservar memoria en el dispositivo para la ejecución en CUDA
+    char* d_target;
+    int* d_found;
+    unsigned long long* d_index;
+    cudaMalloc(&d_target, MAX_PASSWORD_LENGTH + 1);
+    cudaMalloc(&d_found, sizeof(int));
+    cudaMalloc(&d_index, sizeof(unsigned long long));
+    cudaMemcpy(d_target, targetPassword, passwordLength + 1, cudaMemcpyHostToDevice);
+
+    const int blockSize = 1024;
+    processServerMessages(sock, passwordLength, d_target, d_found, d_index, blockSize);
 
     // Liberar recursos y cerrar conexiones
     cudaFree(d_target);
