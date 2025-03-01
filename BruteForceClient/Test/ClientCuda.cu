@@ -1,6 +1,6 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <windows.h>   // Para Sleep()
+#include <windows.h>
 #include <iostream>
 #include <cuda_runtime.h>
 #include <cstring>
@@ -9,7 +9,7 @@
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "cudart.lib")
 
-#define SERVER_IP "XX.XXX.XX.XXX" // Change it to the server IP
+#define SERVER_IP "XX.XXX.XX.XXX" // Cambiar la IP por la del servidor
 #define PORT 65432
 #define CHARSET_SIZE 62
 #define MAX_PASSWORD_LENGTH 10
@@ -70,7 +70,7 @@ SOCKET connectToServer(const char* server_ip, int port) {
             Sleep(1000); // Espera 1 segundo antes de reintentar
             continue;
         }
-        break; // Conexión exitosa
+        break;
     }
     return sock;
 }
@@ -81,7 +81,7 @@ bool receiveConfiguration(SOCKET sock, int& passwordLength, char targetPassword[
     if (ret <= 0) return false;
     passwordLength = ntohl(passwordLength);
     if (passwordLength > MAX_PASSWORD_LENGTH) {
-        std::cerr << "[Cliente] Error: Longitud de contraseña inválida." << std::endl;
+        std::cerr << "[Cliente] Error: Longitud de contrasena invalida." << std::endl;
         return false;
     }
     ret = recv(sock, targetPassword, passwordLength, 0);
@@ -90,7 +90,7 @@ bool receiveConfiguration(SOCKET sock, int& passwordLength, char targetPassword[
     return true;
 }
 
-// Función que procesa los mensajes recibidos del servidor
+// Función que procesa los mensajes recibidos del servidor ++
 void processServerMessages(SOCKET sock, int passwordLength,
     char* d_target, int* d_found, unsigned long long* d_index, int blockSize) {
 
@@ -98,7 +98,7 @@ void processServerMessages(SOCKET sock, int passwordLength,
         char msgBuffer[256] = { 0 };
         int bytes = recv(sock, msgBuffer, sizeof(msgBuffer) - 1, 0);
         if (bytes <= 0) {
-            std::cerr << "[Cliente] Desconexión del servidor." << std::endl;
+            std::cerr << "[Cliente] Desconexion del servidor." << std::endl;
             break;
         }
         msgBuffer[bytes] = '\0';
@@ -109,7 +109,7 @@ void processServerMessages(SOCKET sock, int passwordLength,
             size_t firstComma = msg.find(',');
             size_t secondComma = msg.find(',', firstComma + 1);
             if (firstComma == std::string::npos || secondComma == std::string::npos) {
-                std::cerr << "[Cliente] Formato de CHUNK inválido." << std::endl;
+                std::cerr << "[Cliente] Formato de CHUNK invalido." << std::endl;
                 continue;
             }
             std::string startStr = msg.substr(firstComma + 1, secondComma - firstComma - 1);
@@ -127,7 +127,6 @@ void processServerMessages(SOCKET sock, int passwordLength,
             bruteForceKernel << <numBlocks, blockSize >> > (d_target, passwordLength,
                 startChunk, endChunk, d_found, d_index);
             cudaDeviceSynchronize();
-
             cudaMemcpy(&found, d_found, sizeof(int), cudaMemcpyDeviceToHost);
             if (found) {
                 unsigned long long foundIndex;
@@ -140,13 +139,13 @@ void processServerMessages(SOCKET sock, int passwordLength,
                     tempIndex /= CHARSET_SIZE;
                 }
                 recoveredPassword[passwordLength] = '\0';
-                std::cout << "[Cliente] Contraseña encontrada: " << recoveredPassword << std::endl;
+                std::cout << "[Cliente] Contrasena encontrada: " << recoveredPassword << std::endl;
                 std::string foundMsg = "FOUND," + std::string(recoveredPassword);
                 send(sock, foundMsg.c_str(), foundMsg.size(), 0);
                 break; // Salir del bucle si se encontró la contraseña
             }
             else {
-                std::cout << "[Cliente] Contraseña no encontrada en este rango." << std::endl;
+                std::cout << "[Cliente] Contrasena no encontrada en este rango." << std::endl;
                 std::string doneMsg = "DONE";
                 send(sock, doneMsg.c_str(), doneMsg.size(), 0);
             }
@@ -172,7 +171,7 @@ int main() {
     int passwordLength = 0;
     char targetPassword[MAX_PASSWORD_LENGTH + 1] = { 0 };
     if (!receiveConfiguration(sock, passwordLength, targetPassword)) {
-        std::cerr << "[Cliente] Error al recibir la configuración." << std::endl;
+        std::cerr << "[Cliente] Error al recibir la configuracion." << std::endl;
         closesocket(sock);
         WSACleanup();
         return 1;
