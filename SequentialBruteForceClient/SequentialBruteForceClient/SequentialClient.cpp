@@ -7,7 +7,7 @@
 #include <cstring>
 #pragma comment(lib, "ws2_32.lib")
 
-#define SERVER_IP "26.169.61.230"
+#define SERVER_IP "XX.XXX.XX.XXX" // Cambiar la IP por la del servidor
 #define PORT 65432
 #define CHARSET_SIZE 62
 #define MAX_PASSWORD_LENGTH 10
