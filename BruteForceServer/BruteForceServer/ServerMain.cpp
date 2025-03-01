@@ -8,13 +8,14 @@
 #include <cmath>
 #include <chrono>
 #include <cstdlib>
+#include <fstream>    // For file I/O
 #pragma comment(lib, "ws2_32.lib")
 
 #define PORT 65432
 #define CHARSET_SIZE 62
 #define MAX_PASSWORD_LENGTH 10
 
-// Función que verifica que la contraseña contenga solo caracteres permitidos (A-Z, a-z, 0-9)
+// Verifica que la contraseña contenga solo caracteres permitidos (A-Z, a-z, 0-9)
 bool esValida(const std::string& pass) {
     const std::string allowed = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     for (char c : pass)
@@ -23,7 +24,7 @@ bool esValida(const std::string& pass) {
     return true;
 }
 
-// Función que solicita al usuario una contraseña válida. Si no lo es, limpia la terminal y vuelve a preguntar.
+// Solicita una contraseña válida. Si no lo es, limpia la terminal y vuelve a preguntar.
 std::string getValidPassword() {
     std::string target;
     while (true) {
@@ -77,10 +78,9 @@ void assignChunk(ClientInfo& client, unsigned long long& nextChunkStart,
     std::cout << "[Servidor] Asignado rango a cliente: " << msg << std::endl;
 }
 
-// Espera hasta que se conecten al menos 'minClients' clientes.
+// Espera hasta que se conecte al menos 'minClients' clientes.
 void waitForMinimumClients(SOCKET serverSocket, std::vector<ClientInfo>& clients,
     int passwordLength, const std::string& targetPassword, int minClients) {
-
     while (clients.size() < (size_t)minClients) {
         fd_set readfds;
         FD_ZERO(&readfds);
@@ -181,7 +181,7 @@ bool processClientMessages(std::vector<ClientInfo>& clients, fd_set& readfds,
                 size_t pos = msg.find(',');
                 if (pos != std::string::npos) {
                     foundPassword = msg.substr(pos + 1);
-                    std::cout << "[Servidor] Contraseña encontrada por un cliente: " << foundPassword << std::endl;
+                    std::cout << "[Servidor] Contrasena encontrada por un cliente: " << foundPassword << std::endl;
                     return true;
                 }
             }
@@ -192,7 +192,11 @@ bool processClientMessages(std::vector<ClientInfo>& clients, fd_set& readfds,
 }
 
 int main() {
-    // Obtener una contraseña válida del usuario (si no lo es, se limpia la terminal y se re-pregunta)
+    int mode = 0;
+    std::cout << "Ingrese modo (1: secuencial, 2: CUDA): ";
+    std::cin >> mode;
+
+    // Obtener una contraseña válida del usuario.
     std::string targetPassword = getValidPassword();
     int passwordLength = targetPassword.size();
 
@@ -202,14 +206,14 @@ int main() {
         totalCombinations *= CHARSET_SIZE;
     }
 
-    // Inicializar Winsock
+    // Inicializar Winsock.
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
         std::cerr << "Error al inicializar Winsock." << std::endl;
         return 1;
     }
 
-    // Crear y configurar el socket de escucha
+    // Crear y configurar el socket de escucha.
     SOCKET serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == INVALID_SOCKET) {
         std::cerr << "Error al crear el socket." << std::endl;
@@ -235,14 +239,39 @@ int main() {
 
     std::cout << "[Servidor] Esperando clientes..." << std::endl;
     std::vector<ClientInfo> clients;
-    const unsigned long long CHUNK_SIZE = 1000000; // Tamaño del bloque
+    const unsigned long long CHUNK_SIZE = 1000000;
     unsigned long long nextChunkStart = 0;
     std::queue<std::pair<unsigned long long, unsigned long long>> pendingChunks;
 
-    // Esperar hasta tener al menos 2 clientes
-    waitForMinimumClients(serverSocket, clients, passwordLength, targetPassword, 2);
+    // Primero, espera al menos 1 cliente.
+    waitForMinimumClients(serverSocket, clients, passwordLength, targetPassword, 1);
 
-    // Iniciar búsqueda: asignar bloque inicial a cada cliente conectado
+    std::cout << "[Servidor] Esperando 10 segundos para un segundo cliente..." << std::endl;
+    auto waitStart = std::chrono::steady_clock::now();
+    while (std::chrono::steady_clock::now() - waitStart < std::chrono::seconds(10)) {
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(serverSocket, &readfds);
+        timeval timeout;
+        timeout.tv_sec = 10;
+        timeout.tv_usec = 0;
+        int activity = select((int)serverSocket + 1, &readfds, NULL, NULL, &timeout);
+        if (activity > 0 && FD_ISSET(serverSocket, &readfds)) {
+            SOCKET newSock = accept(serverSocket, NULL, NULL);
+            if (newSock != INVALID_SOCKET) {
+                sendInitialConfiguration(newSock, passwordLength, targetPassword);
+                ClientInfo ci;
+                ci.sock = newSock;
+                ci.busy = false;
+                ci.currentChunkStart = 0;
+                ci.currentChunkEnd = 0;
+                clients.push_back(ci);
+                std::cout << "[Servidor] Cliente " << clients.size() << " conectado." << std::endl;
+            }
+        }
+        break;
+    }
+
     for (auto& client : clients) {
         assignChunk(client, nextChunkStart, totalCombinations, CHUNK_SIZE);
     }
@@ -251,7 +280,6 @@ int main() {
     bool passwordFound = false;
     std::string foundPassword;
 
-    // Bucle principal: aceptar nuevos clientes y procesar mensajes
     while (!passwordFound) {
         fd_set readfds;
         FD_ZERO(&readfds);
@@ -278,7 +306,6 @@ int main() {
             CHUNK_SIZE, pendingChunks, foundPassword))
             passwordFound = true;
 
-        // Salir si se asignaron todos los bloques y todos los clientes están inactivos
         if (nextChunkStart >= totalCombinations && pendingChunks.empty()) {
             bool allIdle = true;
             for (auto& c : clients) {
@@ -292,7 +319,35 @@ int main() {
     auto endTime = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsedSeconds = endTime - startTime;
 
-    // Notificar a todos los clientes para que finalicen
+    if (mode == 1) {
+        std::ofstream outfile("sequential_time.bin", std::ios::binary);
+        if (outfile.is_open()) {
+            double seqTime = elapsedSeconds.count();
+            outfile.write(reinterpret_cast<const char*>(&seqTime), sizeof(seqTime));
+            outfile.close();
+            std::cout << "[Servidor] Tiempo secuencial guardado: " << seqTime << " segundos." << std::endl;
+        }
+        else {
+            std::cerr << "[Servidor] Error al escribir el archivo de tiempo secuencial." << std::endl;
+        }
+    }
+    else if (mode == 2) {
+        std::ifstream infile("sequential_time.bin", std::ios::binary);
+        if (infile.is_open()) {
+            double seqTime = 0.0;
+            infile.read(reinterpret_cast<char*>(&seqTime), sizeof(seqTime));
+            infile.close();
+            double cudaTime = elapsedSeconds.count();
+            double speedup = seqTime / cudaTime;
+            std::cout << "[Servidor] Tiempo secuencial: " << seqTime << " segundos." << std::endl;
+            std::cout << "[Servidor] Tiempo CUDA: " << cudaTime << " segundos." << std::endl;
+            std::cout << "[Servidor] Speedup: " << speedup << std::endl;
+        }
+        else {
+            std::cerr << "[Servidor] No se pudo leer el archivo de tiempo secuencial." << std::endl;
+        }
+    }
+
     for (auto& client : clients) {
         std::string termMsg = "TERMINATE";
         send(client.sock, termMsg.c_str(), termMsg.size(), 0);
@@ -302,11 +357,11 @@ int main() {
     WSACleanup();
 
     if (!foundPassword.empty())
-        std::cout << "[Servidor] Contraseña encontrada: " << foundPassword << std::endl;
+        std::cout << "[Servidor] Contrasena encontrada: " << foundPassword << std::endl;
     else
-        std::cout << "[Servidor] Contraseña no encontrada en el espacio de búsqueda." << std::endl;
+        std::cout << "[Servidor] Contrasena no encontrada en el espacio de busqueda." << std::endl;
 
-    std::cout << "[Servidor] Tiempo total de búsqueda: " << elapsedSeconds.count() << " segundos." << std::endl;
+    std::cout << "[Servidor] Tiempo total de busqueda: " << elapsedSeconds.count() << " segundos." << std::endl;
 
     return 0;
 }
