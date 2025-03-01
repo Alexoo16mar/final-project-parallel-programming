@@ -1,0 +1,4 @@
+﻿  SequentialClient.cpp
+C:\Users\Alexoo\source\repos\SequentialBruteForceClient\SequentialBruteForceClient\SequentialClient.cpp(115,59): warning C4267: 'argumento': conversión de 'size_t' a 'int'; posible pérdida de datos
+C:\Users\Alexoo\source\repos\SequentialBruteForceClient\SequentialBruteForceClient\SequentialClient.cpp(121,57): warning C4267: 'argumento': conversión de 'size_t' a 'int'; posible pérdida de datos
+  SequentialBruteForceClient.vcxproj -> C:\Users\Alexoo\source\repos\SequentialBruteForceClient\x64\Debug\SequentialBruteForceClient.exe
