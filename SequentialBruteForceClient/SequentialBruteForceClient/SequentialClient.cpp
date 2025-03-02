@@ -7,7 +7,7 @@
 #include <cstring>
 #pragma comment(lib, "ws2_32.lib")
 
-#define SERVER_IP "XX.XXX.XX.XXX" // Cambiar la IP por la del servidor
+#define SERVER_IP "XX.XXX.XX.XXX" // Cambiar la IP por la del servidor de RadminVPN
 #define PORT 65432
 #define CHARSET_SIZE 62
 #define MAX_PASSWORD_LENGTH 10
