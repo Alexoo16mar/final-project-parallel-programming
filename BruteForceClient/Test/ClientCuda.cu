@@ -9,7 +9,7 @@
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "cudart.lib")
 
-#define SERVER_IP "XX.XXX.XX.XXX" // Cambiar la IP por la del servidor
+#define SERVER_IP "XX.XXX.XX.XXX" // Cambiar la IP por la del servidor RadminVPN
 #define PORT 65432
 #define CHARSET_SIZE 62
 #define MAX_PASSWORD_LENGTH 10
@@ -90,7 +90,7 @@ bool receiveConfiguration(SOCKET sock, int& passwordLength, char targetPassword[
     return true;
 }
 
-// Función que procesa los mensajes recibidos del servidor ++
+// Función que procesa los mensajes recibidos del servidor 
 void processServerMessages(SOCKET sock, int passwordLength,
     char* d_target, int* d_found, unsigned long long* d_index, int blockSize) {
 
