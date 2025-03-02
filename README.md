@@ -10,7 +10,7 @@ Además, incluye una **versión secuencial** que permite comparar el rendimiento
 
 El sistema consta de dos implementaciones:
 
-### ⚡ Versión con CUDA (Distribuida)
+### Versión con CUDA (Distribuida)
 - **Servidor:**  
   - Define una contraseña objetivo y divide el espacio de búsqueda en **rangos**.  
   - Asigna los rangos a clientes conectados y espera una respuesta.  
@@ -28,7 +28,7 @@ La comunicación entre clientes y servidor se realiza a través de **sockets (Wi
 
 ---
 
-## 🛠️ Requisitos
+##  Requisitos
 
 ###  Software
 - [RadminVPN](https://www.radmin-vpn.com/) → Para conectar clientes y servidor en una red virtual.  
@@ -41,7 +41,7 @@ La comunicación entre clientes y servidor se realiza a través de **sockets (Wi
 ---
 
 
-## 📊 Comparación de Rendimiento
+## Comparación de Rendimiento
 
 | Implementación | Plataforma | Método | Aceleración |
 |---------------|-----------|--------|-------------|
