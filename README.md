@@ -1,33 +1,50 @@
-# BruteForce CUDA + RadminVPN
+#  BruteForce CUDA + RadminVPN
 
-Este proyecto implementa un ataque de fuerza bruta distribuido para descifrar contraseñas mediante CUDA, aprovechando la potencia de la GPU y una red privada virtual (RadminVPN) para la comunicación entre clientes y el servidor.
+Este proyecto implementa un **ataque de fuerza bruta ** para descifrar contraseñas, utilizando **CUDA** para aprovechar la potencia de la **GPU** y **RadminVPN** para la comunicación entre clientes y servidor.  
+
+Además, incluye una **versión secuencial** que permite comparar el rendimiento entre la ejecución en **CPU** y **GPU**.
+
+---
 
 ##  Descripción
 
-El sistema consta de dos componentes principales:
+El sistema consta de dos implementaciones:
 
-1. **Servidor**: Se ejecuta en una máquina y define una contraseña objetivo. Divide el espacio de búsqueda entre dos clientes y espera recibir la contraseña correcta.
-2. **Clientes**: Cada cliente recibe un rango de búsqueda y usa CUDA para ejecutar la búsqueda en la GPU.
+### ⚡ Versión con CUDA (Distribuida)
+- **Servidor:**  
+  - Define una contraseña objetivo y divide el espacio de búsqueda en **rangos**.  
+  - Asigna los rangos a clientes conectados y espera una respuesta.  
 
-La comunicación entre clientes y servidor se realiza mediante **sockets** en Windows (`Winsock2`), mientras que la aceleración del ataque de fuerza bruta se implementa con **CUDA**.
+- **Clientes:**  
+  - Reciben un **rango de búsqueda** desde el servidor.  
+  - Ejecutan el ataque de fuerza bruta en la **GPU** mediante **CUDA**.  
+
+La comunicación entre clientes y servidor se realiza a través de **sockets (Winsock2)** en Windows.
+
+### Versión Secuencial
+- Realiza la búsqueda **de manera iterativa en la CPU**.
+- Se conecta al servidor, recibe un rango de búsqueda y prueba todas las combinaciones dentro de ese rango.
+- Permite comparar el rendimiento de **CPU vs GPU (CUDA)**, evaluando la mejora de velocidad lograda con la aceleración en la GPU.
 
 ---
 
-##  Requisitos
+## 🛠️ Requisitos
 
-###  Software:
-- [RadminVPN](https://www.radmin-vpn.com/) (para conectar clientes y servidor en una red virtual)
-- CUDA Toolkit
-- Microsoft Visual Studio (para compilar con CUDA)
+###  Software
+- [RadminVPN](https://www.radmin-vpn.com/) → Para conectar clientes y servidor en una red virtual.  
+- **CUDA Toolkit** → Necesario para la ejecución en la GPU.  
+- **Microsoft Visual Studio** → Para compilar el código CUDA en Windows.
 
-###  Hardware:
-- GPU compatible con CUDA
+###  Hardware
+- **GPU compatible con CUDA**.
 
 ---
 
-## Instalación y Uso
 
-### Configurar RadminVPN
-1. Instala **[RadminVPN](https://www.radmin-vpn.com/)** en todas las máquinas (servidor y clientes).
-2. Crea una **Red Privada** en RadminVPN desde el servidor y únete a ella desde los clientes.
-3. Copia la dirección IP de RadminVPN del servidor y configúrala en el código del cliente:
+## 📊 Comparación de Rendimiento
+
+| Implementación | Plataforma | Método | Aceleración |
+|---------------|-----------|--------|-------------|
+| **Secuencial** | CPU | Iterativo |  No |
+| **CUDA** | GPU | Paralelizado |  Sí |
+
