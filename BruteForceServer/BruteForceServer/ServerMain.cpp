@@ -8,7 +8,7 @@
 #include <cmath>
 #include <chrono>
 #include <cstdlib>
-#include <fstream>    // For file I/O
+#include <fstream>    
 #pragma comment(lib, "ws2_32.lib")
 
 #define PORT 65432
@@ -195,8 +195,6 @@ int main() {
     int mode = 0;
     std::cout << "Ingrese modo (1: secuencial, 2: CUDA): ";
     std::cin >> mode;
-
-    // Obtener una contraseña válida del usuario.
     std::string targetPassword = getValidPassword();
     int passwordLength = targetPassword.size();
 
@@ -213,7 +211,7 @@ int main() {
         return 1;
     }
 
-    // Crear y configurar el socket de escucha.
+    // Crea y configura el socket
     SOCKET serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == INVALID_SOCKET) {
         std::cerr << "Error al crear el socket." << std::endl;
@@ -243,7 +241,7 @@ int main() {
     unsigned long long nextChunkStart = 0;
     std::queue<std::pair<unsigned long long, unsigned long long>> pendingChunks;
 
-    // Primero, espera al menos 1 cliente.
+    // Espera al menos 1 cliente.
     waitForMinimumClients(serverSocket, clients, passwordLength, targetPassword, 1);
 
     std::cout << "[Servidor] Esperando 10 segundos para un segundo cliente..." << std::endl;
